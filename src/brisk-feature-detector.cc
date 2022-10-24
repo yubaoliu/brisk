@@ -48,55 +48,61 @@
 
 #include <brisk/brisk-feature-detector.h>
 #include <brisk/internal/brisk-scale-space.h>
-
+#include <functional>
 namespace {
 void RemoveInvalidKeyPoints(const cv::Mat& mask,
-                            std::vector<cv::KeyPoint>* keypoints) {
-  if(keypoints==nullptr){
-    throw std::runtime_error("keypoints NULL");
-  }
-  if (mask.empty())
-    return;
+    std::vector<cv::KeyPoint>* keypoints)
+{
+    if (keypoints == nullptr) {
+        throw std::runtime_error("keypoints NULL");
+    }
+    if (mask.empty())
+        return;
 
-  std::function<bool(const cv::KeyPoint& key_pt)> masking =
-      [&mask](const cv::KeyPoint& key_pt)->bool {
+    std::function<bool(const cv::KeyPoint& key_pt)> masking =
+        [&mask](const cv::KeyPoint& key_pt) -> bool {
         const float& keypoint_x = cv::KeyPointX(key_pt);
         const float& keypoint_y = cv::KeyPointY(key_pt);
         return mask.at<unsigned char>(static_cast<int>(keypoint_y + 0.5f),
-            static_cast<int>(keypoint_x + 0.5f)) == 0;
-  };
+                   static_cast<int>(keypoint_x + 0.5f))
+            == 0;
+    };
 
-  keypoints->erase(
-      std::remove_if(keypoints->begin(), keypoints->end(),
-                     masking), keypoints->end());
+    keypoints->erase(
+        std::remove_if(keypoints->begin(), keypoints->end(),
+            masking),
+        keypoints->end());
 }
-}  // namespace
+} // namespace
 
 namespace brisk {
 BriskFeatureDetector::BriskFeatureDetector(int threshold, int octaves,
-                                           bool suppressScaleNonmaxima) {
-  _threshold = threshold;
-  _octaves = octaves;
-  _suppressScaleNonmaxima = suppressScaleNonmaxima;
+    bool suppressScaleNonmaxima)
+{
+    _threshold = threshold;
+    _octaves = octaves;
+    _suppressScaleNonmaxima = suppressScaleNonmaxima;
 }
 
 void BriskFeatureDetector::detectImpl(const cv::Mat& image,
-                                      std::vector<cv::KeyPoint>& keypoints,
-                                      const cv::Mat& mask) const {
-  if(!image.isContinuous() || image.channels()!=1 || image.elemSize()!=1) {
-    throw std::runtime_error("BRISK requires continuous 1-channel 8-bit images");
-  }
-  keypoints.clear();
-  brisk::BriskScaleSpace briskScaleSpace(_octaves, _suppressScaleNonmaxima);
-  briskScaleSpace.ConstructPyramid(image, _threshold);
-  briskScaleSpace.GetKeypoints(&keypoints);
-  RemoveInvalidKeyPoints(mask, &keypoints);
+    std::vector<cv::KeyPoint>& keypoints,
+    const cv::Mat& mask) const
+{
+    if (!image.isContinuous() || image.channels() != 1 || image.elemSize() != 1) {
+        throw std::runtime_error("BRISK requires continuous 1-channel 8-bit images");
+    }
+    keypoints.clear();
+    brisk::BriskScaleSpace briskScaleSpace(_octaves, _suppressScaleNonmaxima);
+    briskScaleSpace.ConstructPyramid(image, _threshold);
+    briskScaleSpace.GetKeypoints(&keypoints);
+    RemoveInvalidKeyPoints(mask, &keypoints);
 }
 
 void BriskFeatureDetector::ComputeScale(
-    const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints) const {
-  BriskScaleSpace briskScaleSpace(_octaves, _suppressScaleNonmaxima);
-  briskScaleSpace.ConstructPyramid(image, _threshold, 0);
-  briskScaleSpace.GetKeypoints(&keypoints);
+    const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints) const
+{
+    BriskScaleSpace briskScaleSpace(_octaves, _suppressScaleNonmaxima);
+    briskScaleSpace.ConstructPyramid(image, _threshold, 0);
+    briskScaleSpace.GetKeypoints(&keypoints);
 }
-}  // namespace brisk
+} // namespace brisk
